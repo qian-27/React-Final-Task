@@ -10,14 +10,23 @@ import NotFound from './components/NotFound';
 //import Mui
 import { Drawer, List, ListItem, Button } from '@mui/material';
 
+//import App Bar from Mui
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+
 function App() {
   return (
     <BrowserRouter>
       <div className="App">
-        <header className="App-header">
-          <h1>Personal Trainer</h1>
-        </header>
-
+        {/* Header */}
+        <AppBar position="static">
+          <Toolbar>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              Personal Trainer
+            </Typography>
+          </Toolbar>
+        </AppBar>
         <Drawer
           variant="permanent"
           sx={{
