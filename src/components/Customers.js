@@ -10,9 +10,15 @@ import 'ag-grid-community/styles/ag-theme-material.css';
 import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
 
+//import other components
+import { API_URL } from '../constants';
+import AddCustomer from './AddCustomer';
+import EditCustomer from './EditCustomer';
+
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [open,setOpen] = useState(false);
+  const [msg, setMsg] = useState('');
 
   const [columnDefs] = useState([
     { field: 'firstname', sortable: true, filter: true, width: 150 },
@@ -22,6 +28,12 @@ const Customers = () => {
     { field: 'city', sortable: true, filter: true, width: 150 },
     { field: 'email', sortable: true, filter: true },
     { field: 'phone', sortable: true, filter: true },
+    {cellRenderer: params => 
+      <EditCustomer 
+        params={params.data} 
+        updateCustomer={updateCustomer}/>,  
+      width: 100
+    },
     {cellRenderer: params => 
       <Button 
         size='small' 
@@ -34,8 +46,8 @@ const Customers = () => {
   ])
 
   //Fetch Date & Save Date
-  const fetchData = () => {
-    fetch('http://traineeapp.azurewebsites.net/api/customers')
+  const getCustomers = () => {
+    fetch(API_URL + 'customers')
     .then(response => {
       if (response.ok) {
         return response.json();
@@ -47,7 +59,24 @@ const Customers = () => {
     .catch(err => console.error(err))
   }
 
-  useEffect(() => fetchData(), []);
+  //Add Function
+  const addCustomer = (customer) => {
+    fetch(API_URL + 'customers', {
+       method: 'POST',
+       headers: {'Content-type':'application/json'},
+       body: JSON.stringify(customer)  
+    })
+    .then(response => {
+       if (response.ok) {
+          setMsg('Customer added!')
+          setOpen(true);
+          getCustomers();
+       } else {
+          alert('Something went wrong in addition: ' + response.statusText);
+       }
+    })
+    .catch(err => console.error(err))
+  }
 
   //Delete Function
   const deleteCustomer=(params) => {
@@ -56,7 +85,7 @@ const Customers = () => {
       .then(response => {
         if (response.ok) {
           setOpen(true);
-          fetchData();
+          getCustomers();
         } else {
           alert('Something went wrong in deletion.')
         }
@@ -65,24 +94,44 @@ const Customers = () => {
     }
   }
 
+  //Edit Function
+  const updateCustomer = (updateCustomer, url) => {
+    fetch(url, {
+      method: 'PUT',
+      headers: {'Content-type': 'application/json'},
+      body: JSON.stringify(updateCustomer)
+    })
+    .then(response => {
+      if (response.ok) {
+        setMsg('Customer edited!')
+        setOpen(true)
+        getCustomers();
+      } else {
+        alert('Something went wrong with editing.');
+      }
+    })
+    .catch(err => console.error(err))
+  }
+
+  useEffect(() => getCustomers(), []);
+
   return (
     <>
+    <AddCustomer addCustomer={addCustomer} />
     <div 
       className='ag-theme-material' 
-      style={{ width: '90%', height: 600, margin: 'auto'}}
-    >
-      <AgGridReact 
-        rowData={customers}
-        columnDefs={columnDefs}
-        pagination={true}
-        paginationPageSize={10}
-      />
-
+      style={{ width: '90%', height: 600, margin: 'auto'}}>
+        <AgGridReact 
+          rowData={customers}
+          columnDefs={columnDefs}
+          pagination={true}
+          paginationPageSize={10}
+        />
     </div>
 
     <Snackbar
       open={open}
-      message="It is successful deleted!"
+      message={msg}
       autoHideDuration={3000}
       onClose={() => setOpen(false)}
     />
