@@ -13,9 +13,14 @@ import Snackbar from '@mui/material/Snackbar';
 //import Day.js
 import dayjs from 'dayjs';
 
+//import other components
+import { API_URL } from '../constants';
+import AddTraining from './AddTraining';
+
 const Trainings = () => {
   const [trainings, setTrainings] = useState([])
   const [open,setOpen] = useState(false);
+  const [msg, setMsg] = useState('');
 
   const customDateFormatter = (params) => {
     return dayjs(params.value).format('DD.MM.YYYY HH:mm');
@@ -37,8 +42,27 @@ const Trainings = () => {
       width: 120}
   ])
 
-  const fetchData = () => {
-    fetch('http://traineeapp.azurewebsites.net/api/trainings')
+  //Fetch Customer's name
+  const getCustomerName = (training) => {
+    return fetch(training.links[2].href)
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error('Something went wrong in GET request for customer name');
+        }
+      })
+      .then(customerName => {
+        return {
+          ...training,
+          customer: `${customerName.firstname} ${customerName.lastname}`
+        };
+      });
+  }
+  
+  //Fetch Training Data and merge with customers' name
+  const getTrainings = () => {
+    fetch(API_URL + 'trainings')
     .then(response => {
       if (response.ok) {
         return response.json();
@@ -47,28 +71,29 @@ const Trainings = () => {
       }
     })
     .then(data => {
-      const trainingData = data.content.map(training => {
-        return fetch(training.links[2].href)
-          .then(response => {
-            if (response.ok) {
-              return response.json();
-            } else {
-              throw new Error('Something went wrong in GET request for customer name');
-            }
-          })
-
-          // Merge the customer name with the training data
-          .then(customerName => {
-            return {
-              ...training,
-              customer: `${customerName.firstname} ${customerName.lastname}`
-            };
-          });
-
-      });
+      const trainingData = data.content.map(getCustomerName);
       return Promise.all(trainingData);
     })
     .then(data => setTrainings(data))
+    .catch(err => console.error(err))
+  }
+  
+  //Add Function
+  const addTraining = (training) => {
+    fetch(API_URL + 'trainings', {
+      method: 'POST',
+      headers: {'Content-type':'application/json'},
+      body: JSON.stringify(training)  
+    })
+    .then(response => {
+      if (response.ok) {
+        setMsg('Training added!')
+        setOpen(true);
+        getTrainings();
+      } else {
+        alert('Something went wrong in addition: ' + response.statusText);
+      }
+    })
     .catch(err => console.error(err))
   }
 
@@ -79,7 +104,7 @@ const Trainings = () => {
       .then(response => {
         if (response.ok) {
           setOpen(true);
-          fetchData();
+          getTrainings();
         } else {
           alert('Something went wrong in deletion.')
         }
@@ -88,26 +113,25 @@ const Trainings = () => {
     }
   }
 
-  useEffect(() => fetchData(), []);
+  useEffect(() => getTrainings(), []);
 
   return (
     <>
+    <AddTraining addTraining={addTraining} />
     <div 
       className='ag-theme-material' 
-      style={{ width: '90%', height: 600, margin: 'auto'}}
-    >
-      <AgGridReact 
-        rowData={trainings}
-        columnDefs={columnDefs}
-        pagination={true}
-        paginationPageSize={10}
-      />
-
+      style={{ width: '90%', height: 600, margin: 'auto'}}>
+        <AgGridReact 
+          rowData={trainings}
+          columnDefs={columnDefs}
+          pagination={true}
+          paginationPageSize={10}
+        />
     </div>
 
     <Snackbar
       open={open}
-      message="It is successful deleted!"
+      message={msg}
       autoHideDuration={3000}
       onClose={() => setOpen(false)}
     />

@@ -24,7 +24,7 @@ export default function EditCustomer(props) {
    };
 
    const handleSave = () => {
-      props.updateCar(car, props.params._links.car.href)
+      props.updateCustomer(customer, props.params.links[1].href)
       setOpen(false);
    };
 
